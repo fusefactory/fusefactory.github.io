@@ -1,59 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>PDF full-bleed iPad</title>
-  <style>
-    html, body { margin:0; height:100%; }
-    #viewer { height:100vh; overflow:auto; -webkit-overflow-scrolling: touch; }
-    canvas { display:block; width:100%; height:auto; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>fuse*</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        iframe {
+            border: none;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        
+        /* Allow pinch zoom on iOS */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                touch-action: pan-x pan-y pinch-zoom;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="viewer"></div>
-
-  <!-- PDF.js (global build) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-    const PDF_URL = "https://fusefactory.github.io/mimicry.pdf";
-    const viewer = document.getElementById("viewer");
-    let pdfDoc = null;
-
-    const debounce = (fn, ms=150) => {
-      let t; return (...args) => { clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
-    };
-
-    async function render() {
-      if (!pdfDoc) return;
-      viewer.innerHTML = ""; // clear
-      const containerWidth = viewer.clientWidth;
-
-      for (let p = 1; p <= pdfDoc.numPages; p++) {
-        const page = await pdfDoc.getPage(p);
-        const vw = page.getViewport({ scale: 1 });
-        const scale = containerWidth / vw.width;        // fit to width
-        const vp = page.getViewport({ scale });
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = Math.floor(vp.width);
-        canvas.height = Math.floor(vp.height);
-        viewer.appendChild(canvas);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      }
-    }
-
-    (async () => {
-      pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-      await render();
-    })();
-
-    // Re-render on resize or orientation change so it stays fitted
-    window.addEventListener("resize", debounce(render));
-    window.addEventListener("orientationchange", debounce(render, 50));
-  </script>
+    <div class="container">
+        <iframe 
+            src="https://fusefactory.github.io/mimicry.pdf#toolbar=0&navpanes=0&scrollbar=0&view=FitW" 
+            width="100%" 
+            height="100%"
+            allow="fullscreen">
+        </iframe>
+    </div>
 </body>
 </html>
