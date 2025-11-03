@@ -1,27 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>fuse*</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>PDF full-bleed iPad</title>
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-    iframe {
-      width: 100vw;
-      height: 100vh;
-      border: none;
-    }
+    html, body { margin:0; height:100%; }
+    #viewer { height:100vh; overflow:auto; -webkit-overflow-scrolling: touch; }
+    canvas { display:block; width:100%; height:auto; }
   </style>
 </head>
 <body>
-  <iframe 
-    src="https://mozilla.github.io/pdf.js/web/viewer.html?file=https://fusefactory.github.io/mimicry.pdf#zoom=page-width&toolbar=0"
-    allowfullscreen>
-  </iframe>
+  <div id="viewer"></div>
+
+  <!-- PDF.js (global build) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const PDF_URL = "https://fusefactory.github.io/mimicry.pdf";
+    const viewer = document.getElementById("viewer");
+    let pdfDoc = null;
+
+    const debounce = (fn, ms=150) => {
+      let t; return (...args) => { clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+    };
+
+    async function render() {
+      if (!pdfDoc) return;
+      viewer.innerHTML = ""; // clear
+      const containerWidth = viewer.clientWidth;
+
+      for (let p = 1; p <= pdfDoc.numPages; p++) {
+        const page = await pdfDoc.getPage(p);
+        const vw = page.getViewport({ scale: 1 });
+        const scale = containerWidth / vw.width;        // fit to width
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        viewer.appendChild(canvas);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      }
+    }
+
+    (async () => {
+      pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+      await render();
+    })();
+
+    // Re-render on resize or orientation change so it stays fitted
+    window.addEventListener("resize", debounce(render));
+    window.addEventListener("orientationchange", debounce(render, 50));
+  </script>
 </body>
 </html>
